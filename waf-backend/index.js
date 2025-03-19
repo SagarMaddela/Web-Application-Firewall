@@ -7,6 +7,7 @@ import{ requestLogger } from "./middleware/logger.js";
 import { connectDB } from "./config/db.js";
 import { Blacklist } from "./models/BlackList.js";
 import { requestFilter } from "./middleware/RequestFilter.js";
+import {contentInspectionMiddleware} from "./middleware/ContentFilter.js";
 
 dotenv.config();
 const app = express();
@@ -19,6 +20,7 @@ app.use(urlencoded({ extended: true }));
 app.use(morgan("dev"));
 app.use(requestLogger);
 app.use(requestFilter);
+app.use(contentInspectionMiddleware);
 
 app.set("trust proxy", true); // Enable if you are behind a reverse proxy (Heroku, Bluemix, AWS ELB, Nginx, etc)
 
@@ -43,6 +45,10 @@ app.get("/check-ip/:ip", async (req, res) => {
   
     res.json({ blacklisted: !!blacklistedIP });
   });
+
+  app.post('/content-filter', (req, res) => {
+    res.send('Request is safe');
+});
 
 
 
