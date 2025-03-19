@@ -10,10 +10,14 @@ export const requestLogger = async (req, res, next) => {
 
   console.log("🛡️ Incoming Request:", logData);
   console.log(`Incoming Request from IP: ${logData.ip}`);
+  const originalSend = res.send;
+  res.send = function (body) {
+    logData.resMessage = res.statusMessage || "OK";  // ✅ Capture response message
+    originalSend.call(this, body);
+  };
 
-  // Capture the response status code after the response is sent
   res.on("finish", async () => {
-    logData.rescode = res.statusCode;  // ✅ Correct way to capture status code
+    logData.rescode = res.statusCode;
 
     try {
       await RequestLog.create(logData);  // Save log in MongoDB
