@@ -46,8 +46,9 @@ app.get("/check-ip/:ip", async (req, res) => {
     res.json({ blacklisted: !!blacklistedIP });
   });
 
-  app.post('/content-filter', (req, res) => {
-    res.send('Request is safe');
+// Updated route to "/content-filter"
+app.post('/content-filter', (req, res) => {
+  res.json({ message: "Request processed", body: req.body });
 });
 
 
