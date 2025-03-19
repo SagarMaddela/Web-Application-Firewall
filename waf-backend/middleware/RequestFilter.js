@@ -1,32 +1,19 @@
-import { RequestLog } from "../models/RequestLog.js";
+import { Blacklist } from "../models/BlackList.js";
+import { BlockedUserAgent } from "../models/BlockedUserAgent.js";
 
-export const requestFilter = (req, res, next) => {
-  const logData = {
-    method: req.method,
-    url: req.originalUrl,
-    ip: req.ip || req.headers["x-forwarded-for"] || req.connection.remoteAddress,
-    userAgent: req.headers["user-agent"]
-  };
+export const requestFilter = async (req, res, next) => {
+  const ip = req.ip || req.headers["x-forwarded-for"] || req.connection.remoteAddress;
+  const userAgent = req.headers["user-agent"];
 
-  console.log("🛡️ Incoming Request:", logData);
+  const blacklistedIP = await Blacklist.findOne({ ip });
+  if (blacklistedIP) {
+    return res.status(403).json({ message: "🚫 Access denied: Blacklisted IP" });
+  }
 
-  // Override res.send to capture the response message
-  const originalSend = res.send;
-  res.send = function (body) {
-    logData.resMessage = res.statusMessage || "OK";  // ✅ Capture response message
-    originalSend.call(this, body);
-  };
+  const blockedUserAgent = await BlockedUserAgent.findOne({ userAgent });
+  if (blockedUserAgent) {
+    return res.status(403).json({ message: "🚫 Access denied: Blocked User-Agent" });
+  }
 
-  res.on("finish", async () => {
-    logData.rescode = res.statusCode;
-
-    try {
-      await RequestLog.create(logData);  // Save log in MongoDB
-      console.log("✅ Request logged successfully.");
-    } catch (error) {
-      console.error("❌ Error saving log:", error);
-    }
-  });
-
-  next();
+  next(); 
 };
