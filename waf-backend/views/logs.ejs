@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Request Logs</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+    }
+    h1 {
+      text-align: center;
+    }
+    form {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 20px;
+    }
+    label {
+      margin-right: 10px;
+    }
+    input, select, button {
+      padding: 8px;
+      margin: 5px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    th, td {
+      border: 1px solid #ddd;
+      padding: 8px;
+      text-align: center;
+    }
+    th {
+      background-color: #f2f2f2;
+    }
+    tr:hover {
+      background-color: #f1f1f1;
+    }
+    .success { color: green; }
+    .forbidden { color: orange; }
+    .error { color: red; }
+  </style>
+</head>
+<body>
+
+<h1>Request Logs</h1>
+
+<!-- Filter Form -->
+<form action="/logs" method="GET">
+  <div>
+    <label>Start Date:</label>
+    <input type="date" name="startDate" value="<%= startDate || '' %>">
+    
+    <label>End Date:</label>
+    <input type="date" name="endDate" value="<%= endDate || '' %>">
+    
+    <label>Status:</label>
+    <select name="rescode">
+      <option value="all" <%= rescode === "all" ? "selected" : "" %>>All</option>
+      <option value="success" <%= rescode === "success" ? "selected" : "" %>>Success (200-399)</option>
+      <option value="forbidden" <%= rescode === "forbidden" ? "selected" : "" %>>Forbidden (403)</option>
+      <option value="Client error" <%= rescode === "Client error" ? "selected" : "" %>>Client Error (400-499)</option>
+      <option value="Server error" <%= rescode === "Server error" ? "selected" : "" %>>Server Error (500-599)</option>
+    </select>
+    
+    <button type="submit">Filter</button>
+  </div>
+</form>
+
+<!-- Logs Table -->
+<table>
+  <thead>
+    <tr>
+      <th>Timestamp</th>
+      <th>Method</th>
+      <th>URL</th>
+      <th>IP Address</th>
+      <th>User Agent</th>
+      <th>Response Code</th>
+      <th>Response Message</th>  <!-- ✅ New Column -->
+    </tr>
+  </thead>
+  <tbody>
+    <% logs.forEach(log => { %>
+      <tr>
+        <td><%= new Date(log.timestamp).toLocaleString() %></td>
+        <td><%= log.method %></td>
+        <td><%= log.url %></td>
+        <td><%= log.ip %></td>
+        <td><%= log.userAgent %></td>
+        <td class="<%= log.rescode >= 200 && log.rescode < 399 ? 'success' 
+                          : log.rescode === 403 ? 'forbidden' 
+                          : log.rescode >= 400 && log.rescode < 500 ? 'error' 
+                          : log.rescode >= 500 && log.rescode < 600 ? 'error' 
+                          : '' %>">
+          <%= log.rescode %>
+        </td>
+        <td><%= log.resMessage %></td>  <!-- ✅ Display Response Message -->
+      </tr>
+    <% }); %>
+  </tbody>
+</table>
+
+</body>
+</html>
