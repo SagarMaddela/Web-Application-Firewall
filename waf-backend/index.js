@@ -3,10 +3,19 @@ import cors from "cors";
 import morgan from "morgan";
 import dotenv from "dotenv";
 import { urlencoded } from "express";
-import{ requestLogger } from "./middleware/logger.js";
+import bodyParser from "body-parser";
+
 import { connectDB } from "./config/db.js";
+
 import { Blacklist } from "./models/BlackList.js";
+import { BlockedUserAgent } from "./models/BlockedUserAgent.js";
+import { User } from "./models/User.js";
+
+import{ requestLogger } from "./middleware/logger.js";
 import { requestFilter } from "./middleware/RequestFilter.js";
+import { signatureDetection } from "./middleware/signatureDetection.js";
+import { rateLimiter, speedLimiter  } from "./middleware/rateLimiter.js";
+import { validateHttpRequest } from "./middleware/httpValidation.js";
 
 dotenv.config();
 const app = express();
@@ -15,16 +24,38 @@ connectDB();
 
 app.use(cors());
 app.use(express.json());
-app.use(urlencoded({ extended: true }));
+app.use(bodyParser.json()); 
+app.use(bodyParser.urlencoded({ extended: true })); 
 app.use(morgan("dev"));
+
 app.use(requestLogger);
 app.use(requestFilter);
+app.use(signatureDetection);
+app.use(rateLimiter);
+app.use(speedLimiter);
+app.use(validateHttpRequest);
 
 app.set("trust proxy", true); // Enable if you are behind a reverse proxy (Heroku, Bluemix, AWS ELB, Nginx, etc)
 
 // Sample route
-app.get("/", (req, res) => {
-  res.send("WAF Backend Running!");
+app.get("/", async (req, res) => {
+  const { search } = req.query;
+
+  if (!search) {
+    return res.send("WAF Backend Running!");
+  }
+
+  try {
+    // Check if the query is trying to select from users
+    if (/^SELECT \* FROM users$/i.test(search.trim())) {
+      const users = await User.find({});
+      return res.json({ message: "✅ Query executed successfully", users });
+    }
+
+    return res.status(400).json({ message: "❌ Invalid query format" });
+  } catch (error) {
+    return res.status(500).json({ message: "❌ Internal server error", error: error.message });
+  }
 });
 
 app.post("/blacklist", async (req, res) => {
@@ -44,6 +75,30 @@ app.get("/check-ip/:ip", async (req, res) => {
     res.json({ blacklisted: !!blacklistedIP });
   });
 
+
+  app.post("/adduseragent", async (req, res) => {
+    try {
+      const { userAgent } = req.body;
+  
+      if (!userAgent) {
+        return res.status(400).json({ message: "User-Agent is required" });
+      }
+  
+      // Check if it already exists
+      const existingAgent = await BlockedUserAgent.findOne({ userAgent });
+      if (existingAgent) {
+        return res.status(409).json({ message: "User-Agent is already blocked" });
+      }
+  
+      // Insert new blocked user-agent
+      const newBlockedUserAgent = new BlockedUserAgent({ userAgent });
+      await newBlockedUserAgent.save();
+  
+      res.status(201).json({ message: "✅ User-Agent added to blocklist", userAgent });
+    } catch (error) {
+      res.status(500).json({ message: "❌ Internal server error", error: error.message });
+    }
+  });
 
 
 const PORT = process.env.PORT || 5000;
