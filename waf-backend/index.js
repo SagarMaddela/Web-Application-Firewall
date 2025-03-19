@@ -16,6 +16,7 @@ import { requestFilter } from "./middleware/RequestFilter.js";
 import { signatureDetection } from "./middleware/signatureDetection.js";
 import { rateLimiter, speedLimiter  } from "./middleware/rateLimiter.js";
 import { validateHttpRequest } from "./middleware/httpValidation.js";
+import {contentInspectionMiddleware} from "./middleware/ContentFilter.js";
 
 dotenv.config();
 const app = express();
@@ -34,6 +35,7 @@ app.use(signatureDetection);
 app.use(rateLimiter);
 app.use(speedLimiter);
 app.use(validateHttpRequest);
+app.use(contentInspectionMiddleware);
 
 app.set("trust proxy", true); // Enable if you are behind a reverse proxy (Heroku, Bluemix, AWS ELB, Nginx, etc)
 
@@ -74,6 +76,11 @@ app.get("/check-ip/:ip", async (req, res) => {
   
     res.json({ blacklisted: !!blacklistedIP });
   });
+
+// Updated route to "/content-filter"
+app.post('/content-filter', (req, res) => {
+  res.json({ message: "Request processed", body: req.body });
+});
 
 
   app.post("/adduseragent", async (req, res) => {
