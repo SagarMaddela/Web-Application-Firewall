@@ -30,3 +30,20 @@ export const contentInspectionMiddleware = (req, res, next) => {
 
     next();
 };
+
+// {
+//     "aadhaar": "1234 5678 9012"
+// }
+
+    // {
+    //     "card": "4111-1111-1111-1111"
+    // }
+
+    // {
+    //     "message": "My email is john.doe@example.com"
+    // }
+    
+        // {
+        //     "message": "Hello, this is a safe request!"
+        // }
+    
